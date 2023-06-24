@@ -1,64 +1,67 @@
 const express = require('express');
 const router = express.Router();
-const Task_schema = require('../models/Task_model.js')
+const TaskSchema = require('../models/Task_model');
 
-router.get('/', (req, res) => {
-    Task_schema.find((err, data) => {
-        if (err) {
-            res.send(err);
-        } else {
-            res.send(data);
-        }
-    });
+// Get all tasks
+router.get('/tasks', async (req, res) => {
+  try {
+    const tasks = await TaskSchema.find();
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-router.get('/:id',async(req,res)=>{
-    try 
-    {
-        const TaskSchema = await Task_schema.findById(req.params.id)
-        res.json(TaskSchema);
-    }
-    catch(err)
-    {
-        console.log('Error'+err)
-    }
-})
-router.post('/',async(req,res)=>{
-    const Temp_Task = new Task_schema({
-        Task_description: req.body.Task_description,
-        Task_completed: req.body.Task_completed
-    })
-    try {
-        const a1 = await Temp_Task.save()
-        res.json(a1)
-    }
-    catch (err)
-    {
-        res.send("Error at post request "+err)
-    }
-})
-router.patch('/:id',async(req,res)=>{
-    try {
-        const TaskSchema = await Task_schema.findById(req.params.id)
-        TaskSchema.Task_description = req.body.Task_description
-        TaskSchema.Task_completed = req.body.Task_completed
-        const a1 = await TaskSchema.save()
-        res.json(a1)
-    }
-    catch (err)
-    {
-        res.send("Error at patch request "+err)
-    }
+// Get a specific task by ID
+router.get('/tasks/:id', async (req, res) => {
+  try {
+    const task = await TaskSchema.findById(req.params.id);
+    res.json(task);
+  } catch (err) {
+    res.status(404).json({ message: 'Task not found' });
+  }
 });
-router.delete('/:id',async(req,res)=>{
-    try 
-    {
-        const TaskSchema = await Task_schema.findByIdAndDelete(req.params.id)
-        res.json(TaskSchema);
-    }
-    catch(err)
-    {
-        console.log('Error at delete'+err)
-    }
+
+// Create a new task
+router.post('/tasks', async (req, res) => {
+  const task = new TaskSchema({
+    Task_description: req.body.Task_description,
+    Task_completed: req.body.Task_completed
+  });
+
+  try {
+    const newTask = await task.save();
+    res.status(201).json(newTask);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 });
-module.exports=router
+
+// Update a task
+router.patch('/tasks/:id', async (req, res) => {
+  try {
+    const task = await TaskSchema.findById(req.params.id);
+    if (req.body.Task_description) {
+      task.Task_description = req.body.Task_description;
+    }
+    if (req.body.Task_completed !== undefined) {
+      task.Task_completed = req.body.Task_completed;
+    }
+    const updatedTask = await task.save();
+    res.json(updatedTask);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Delete a task
+router.delete('/tasks/:id', async (req, res) => {
+  try {
+    const task = await TaskSchema.findByIdAndDelete(req.params.id);
+    res.json(task);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+module.exports = router;
