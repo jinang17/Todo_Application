@@ -17,7 +17,14 @@ The TODO List Application is a web-based task management tool that allows users 
 - Backend: Node.js, Express.js
 - Database: MongoDB
 - Tools: Git,ThunderClient
+## Demo
 
+   
+
+https://github.com/jinang17/Todo_Application/assets/76151703/aeb34bda-3df7-43a5-b226-194dab1622b3
+
+
+   
 ## Getting Started
 
 To run the TODO List Application on your local machine, follow these steps:
