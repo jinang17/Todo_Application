@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TODO_LIST</title>
+    <style>
+      /* Add some basic styling */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      h1 {
+        text-align: center;
+      }
+      h2 {
+        text-align: center;
+      }
+      form {
+        margin-bottom: 20px;
+      }
+
+      input[type="text"] {
+        padding: 10px;
+        width: 300px;
+      }
+
+      button {
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .task-container {
+        width: 500px;
+        background-color: #f2f2f2;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+      }
+
+      .task-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .task-list li {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .task-list li .checkbox {
+        margin-right: 10px;
+      }
+
+      .task-list li input[type="text"] {
+        flex: 1;
+      }
+
+      .task-list li .edit-icon,
+      .task-list li .delete-icon {
+        margin-left: 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TODO_LIST</h1>
+
+    <form id="taskForm">
+      <input
+        type="text"
+        id="taskInput"
+        placeholder="Enter task description"
+        required
+      />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <div class="task-container">
+      <h2>Tasks</h2>
+      <ul id="taskList" class="task-list"></ul>
+    </div>
+
+    <script>
+      // Function to fetch tasks from the server
+      async function fetchTasks() {
+        try {
+          const response = await fetch("/tasks");
+          const tasks = await response.json();
+          renderTasks(tasks);
+        } catch (error) {
+          console.error("Error fetching tasks:", error);
+        }
+      }
+
+      // Function to render tasks on the page
+      function renderTasks(tasks) {
+        const taskList = document.getElementById("taskList");
+        taskList.innerHTML = "";
+
+        tasks.forEach((task) => {
+          const listItem = document.createElement("li");
+          listItem.innerHTML = `
+          <input class="checkbox" type="checkbox" data-task-id="${task._id}" ${
+            task.Task_completed ? "checked" : ""
+          }>
+          <input class="task-input" type="text" value="${
+            task.Task_description
+          }" readonly>
+          <span class="edit-icon" data-task-id="${task._id}">&#9998;</span>
+          <span class="delete-icon" data-task-id="${task._id}">&#128465;</span>
+        `;
+
+          if (task.Task_completed) {
+            listItem.classList.add("completed");
+          }
+
+          taskList.appendChild(listItem);
+          listItem.style.animationDelay = `${Math.random() * 0.5}s`;
+        });
+      }
+
+      // Function to add a new task
+      async function addTask(event) {
+        event.preventDefault();
+
+        const taskInput = document.getElementById("taskInput");
+        const description = taskInput.value.trim();
+
+        if (description) {
+          try {
+            const response = await fetch("/tasks", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                Task_description: description,
+                Task_completed: false,
+              }),
+            });
+
+            const newTask = await response.json();
+            taskInput.value = "";
+            fetchTasks();
+          } catch (error) {
+            console.error("Error adding task:", error);
+          }
+        }
+      }
+
+      // Function to delete a task
+      async function deleteTask(taskId) {
+        try {
+          const response = await fetch(`/tasks/${taskId}`, {
+            method: "DELETE",
+          });
+
+          const deletedTask = await response.json();
+          fetchTasks();
+        } catch (error) {
+          console.error("Error deleting task:", error);
+        }
+      }
+
+      // Function to toggle the completion status of a task
+      async function toggleTaskCompletion(taskId, completed) {
+        try {
+          const response = await fetch(`/tasks/${taskId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              Task_completed: completed,
+            }),
+          });
+
+          const updatedTask = await response.json();
+          fetchTasks();
+        } catch (error) {
+          console.error("Error updating task:", error);
+        }
+      }
+
+      // Function to handle edit button click
+      function handleEditTask(event) {
+        const taskId = event.target.getAttribute("data-task-id");
+        const taskInput =
+          event.target.parentElement.querySelector(".task-input");
+        taskInput.removeAttribute("readonly");
+        taskInput.focus();
+        taskInput.addEventListener("blur", () => {
+          taskInput.setAttribute("readonly", true);
+          updateTaskDescription(taskId, taskInput.value);
+        });
+      }
+
+      // Function to update task description
+      async function updateTaskDescription(taskId, description) {
+        try {
+          await fetch(`/tasks/${taskId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              Task_description: description,
+            }),
+          });
+
+          fetchTasks();
+        } catch (error) {
+          console.error("Error updating task description:", error);
+        }
+      }
+
+      // Function to initialize the app
+      function init() {
+        const taskForm = document.getElementById("taskForm");
+        taskForm.addEventListener("submit", addTask);
+
+        const taskList = document.getElementById("taskList");
+        taskList.addEventListener("click", (event) => {
+          const target = event.target;
+          if (target.classList.contains("checkbox")) {
+            const taskId = target.getAttribute("data-task-id");
+            const completed = target.checked;
+            toggleTaskCompletion(taskId, completed);
+          } else if (target.classList.contains("delete-icon")) {
+            const taskId = target.getAttribute("data-task-id");
+            deleteTask(taskId);
+          } else if (target.classList.contains("edit-icon")) {
+            handleEditTask(event);
+          }
+        });
+
+        fetchTasks();
+      }
+
+      // Call the init function when the page has finished loading
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>
